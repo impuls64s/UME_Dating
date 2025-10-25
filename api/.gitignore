@@ -1,0 +1,8 @@
+__pycache__
+.env
+.venv/
+database/*.db
+ex.py
+ex3.py
+storage/
+
