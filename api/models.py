@@ -37,7 +37,7 @@ class VerificationForm(BaseModel):
     verification_photo: str
 
 
-external_data = {\
+external_data = {
     "email": '12312das@mail.ru',
     "name": "Анна",
     "birth_date": "1995-05-15",

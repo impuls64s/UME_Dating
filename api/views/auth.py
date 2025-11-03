@@ -20,7 +20,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.post("/registration", status_code=status.HTTP_201_CREATED)
+@router.post("/registration/", status_code=status.HTTP_201_CREATED)
 def registration(form: RegistrationForm):
     try:
         with Session(engine) as session:
@@ -62,7 +62,7 @@ def registration(form: RegistrationForm):
     }
 
 
-@router.post("/verification")
+@router.post("/verification/")
 async def verification(
     user_id: int = Form(..., description="ID Пользователя"),
     avatar: UploadFile = File(..., description="Основное фото профиля"),
