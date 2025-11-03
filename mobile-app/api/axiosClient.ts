@@ -1,53 +1,105 @@
-// api/axiosClient.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
+import { Platform } from 'react-native';
+import * as I from '../types/api';
+import * as EP from './endpoints';
 
-// Базовый URL
-const API_BASE = 'http://your-api.com/api';
 
-// Создаем экземпляр axios
-const axiosClient: AxiosInstance = axios.create({
-  baseURL: API_BASE,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const HEADERS = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+};
 
-// Интерцептор для добавления токена
-axiosClient.interceptors.request.use(
-  async (config: AxiosRequestConfig) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error getting token from storage:', error);
-    }
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
+
+export const getAllCities = async () => {
+  try {
+    const response = await axios.get(EP.LIST_CITIES, {headers: HEADERS});
+    return response.data.items.map((item: { id: any; name: any; }) => ({
+      value: item.id, 
+      label: item.name
+    }));
+  } catch (error) {
+    console.error('Error in getAllCities:', error);
+    throw error; // Пробрасываем ошибку дальше
   }
-);
+};
 
-// Интерцептор для обработки ошибок
-axiosClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      try {
-        // Токен устарел - разлогиниваем
-        await AsyncStorage.removeItem('token');
-        // Можно показать экран логина или dispatch event
-        console.log('Token expired, redirect to login');
-      } catch (storageError) {
-        console.error('Error removing token:', storageError);
-      }
-    }
-    return Promise.reject(error);
+
+export const createUser = async (formData: I.UserFormData) => {
+  try {
+    const payload = {
+      email: formData.email,
+      name: formData.name,
+      birth_date: formData.birthDate.toISOString().split('T')[0],
+      height: formData.height,
+      gender: formData.gender,
+      city_id: formData.cityId,
+      body_type: formData.bodyType,
+    };
+    const response = await axios.post(EP.REGISTRATION, payload, {
+      headers: HEADERS,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error in createUser:', error);
+    throw error;
   }
-);
+};
 
-export default axiosClient;
+
+export const verification = async (photoUri: string, selfieUri: string, userId: number) => {
+  try {
+    const formData = new FormData();
+
+    // Добавляем user_id
+    formData.append('user_id', userId.toString());
+
+    // Для браузера - создаем правильные File объекты
+    if (Platform.OS === 'web') {
+      // Аватар
+      const avatarResponse = await fetch(photoUri);
+      const avatarBlob = await avatarResponse.blob();
+      const avatarFile = new File([avatarBlob], `avatar_user_${userId}.jpg`, { type: 'image/jpeg' });
+      formData.append('avatar', avatarFile);
+
+      // Фото для верификации
+      const verificationResponse = await fetch(selfieUri);
+      const verificationBlob = await verificationResponse.blob();
+      const verificationFile = new File([verificationBlob], `verification_user_${userId}.jpg`, { type: 'image/jpeg' });
+      formData.append('verification_photo', verificationFile);
+    } else {
+      // Для React Native
+      const avatarFile = {
+        uri: photoUri,
+        type: 'image/jpeg',
+        name: `avatar_user_${userId}.jpg`,
+      } as any;
+      formData.append('avatar', avatarFile);
+
+      const verificationFile = {
+        uri: selfieUri,
+        type: 'image/jpeg',
+        name: `verification_user_${userId}.jpg`,
+      } as any;
+      formData.append('verification_photo', verificationFile);
+    }
+
+    console.log('Sending form data with fields:', {
+      user_id: userId,
+      avatar: `avatar_user_${userId}.jpg`,
+      verification_photo: `verification_user_${userId}.jpg`
+    });
+
+    const response = await axios.post(EP.VERIFICATION, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json',
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error in verification:', error);
+    throw error;
+  }
+};

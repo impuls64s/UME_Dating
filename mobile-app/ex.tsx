@@ -313,3 +313,16 @@ const styles = StyleSheet.create({
   />
 )}
 </View>
+
+
+
+
+const handleInputChange = (field: string, value: string) => {
+  setFormData(prev => ({ ...prev, [field]: value }));
+};
+
+const handleDateChange = (event: any, selectedDate?: Date) => {
+  if (selectedDate) {
+    setFormData(prev => ({ ...prev, birthDate: selectedDate }));
+  }
+};

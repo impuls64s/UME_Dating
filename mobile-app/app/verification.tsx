@@ -1,8 +1,11 @@
+import { verification } from '@/api/axiosClient';
 import BasicButton from '@/components/Buttons';
+import { getData } from '@/components/Storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +20,7 @@ export default function VerificationScreen() {
   const router = useRouter();
   const [photo, setPhoto] = useState<string | null>(null);
   const [selfie, setSelfie] = useState<string | null>(null);
+  const axios = require('axios');
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -60,9 +64,38 @@ export default function VerificationScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    // router.navigate('/verification');
-    router.navigate('/pending');
+  const handleSubmit = async () => {
+    if (!photo || !selfie) {
+      if (typeof window !== 'undefined') {
+        window.alert('Не все поля заполнены');
+        return;
+      } else {
+        Alert.alert('Не все поля заполнены');
+        return;
+      }
+    }
+
+    try {
+      const userId = await getData('userId');
+      if (!userId) {
+        Alert.alert('Ошибка', 'User ID не найден. Пожалуйста, пройдите регистрацию заново.');
+        router.navigate('/registration');
+        return;
+      }
+
+      console.log('Starting verification...');
+      const result = await verification(photo, selfie, parseInt(userId));
+      console.log('Verification successful:', result);
+      router.navigate('/pending');
+    } catch (error: any) {
+      console.error('Verification failed:', error);
+      if (axios.isAxiosError(error)) {
+        Alert.alert('Ошибка', error.response?.data?.message || 'Произошла ошибка при верификации');
+      } else {
+        Alert.alert('Ошибка', 'Неизвестная ошибка');
+      }
+    }
+
   };
 
 
@@ -133,7 +166,7 @@ export default function VerificationScreen() {
             )}
           </View>
 
-            <BasicButton text='Отправить' handleOnPress={handleSubmit} />
+          <BasicButton text='Отправить' handleOnPress={handleSubmit} />
         
         </View>
 
