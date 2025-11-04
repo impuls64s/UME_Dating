@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from jwt.exceptions import InvalidTokenError
 
-from models import UserData, ChangePasswordRequest
+from schemas import UserData, ChangePasswordRequest
 from database.connect import get_db
 from database.models import User
 from utils.jwt_manager import verify_token

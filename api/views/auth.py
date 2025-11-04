@@ -13,7 +13,7 @@ from utils.common import generate_password
 from utils.email_sender import send_password
 from constants import ALLOWED_PHOTO_EXTENSIONS, PhotoType
 from config import STORAGE_UPLOADS
-from models import RegistrationForm, Token
+from schemas import RegistrationForm, Token
 from database.connect import get_db
 from database.models import User, Photo
 from utils.jwt_manager import create_access_token
