@@ -19,6 +19,7 @@ class Status(str, Enum):
     INACTIVE = "inactive"
     BANNED = "banned"
     PENDING = "pending"
+    REJECTED = "rejected"
     DELETED = "deleted"
 
 

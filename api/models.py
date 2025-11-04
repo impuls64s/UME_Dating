@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr, ValidationError
+from pydantic import BaseModel, Field, field_validator, EmailStr, ValidationError, model_validator
 from datetime import date
 from typing import Optional
 import re
-from constants import BodyType, Gender
+from constants import BodyType, Gender, Status
 
 
 class RegistrationForm(BaseModel):
@@ -31,10 +31,46 @@ class RegistrationForm(BaseModel):
         return v
 
 
-class VerificationForm(BaseModel):
-    user_id: int
-    avatar: str
-    verification_photo: str
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserData(BaseModel):
+    id: int
+    email: EmailStr
+    name: str
+    status: Status
+    birth_date: date
+    height: int
+    body_type: BodyType
+    gender: Gender
+    city_id: int
+
+
+class ChangePasswordRequest(BaseModel):
+    email: EmailStr
+    old_password: str
+    new_password: str
+    confirm_password: str
+
+    @field_validator('new_password')
+    def validate_password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError('Пароль должен содержать минимум 8 символов')
+        return v
+
+    @field_validator('confirm_password')
+    def validate_passwords_match(cls, v, info):
+        if 'new_password' in info.data and v != info.data['new_password']:
+            raise ValueError('Новые пароли не совпадают')
+        return v
+
+    @model_validator(mode='after')
+    def validate_different_passwords(self):
+        if self.old_password == self.new_password:
+            raise ValueError('Новый пароль должен отличаться от старого')
+        return self
 
 
 external_data = {
@@ -50,4 +86,7 @@ external_data = {
 
 # user = RegistrationForm(**external_data)
 # print(user.model_dump_json())
+
+
+
 

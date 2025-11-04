@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from views.auth import router as auth_router
 from views.service import router as service_router
+from views.users import router as users_router
 from config import LOG_LEVEL
 
 
@@ -20,7 +21,7 @@ logging.basicConfig(
 app = FastAPI()
 app.include_router(auth_router, prefix="/api/v1", tags=['Auth'])
 app.include_router(service_router, prefix="/api/v1", tags=['Service'])
-
+app.include_router(users_router, prefix="/api/v1", tags=['Users'])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
