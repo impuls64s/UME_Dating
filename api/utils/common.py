@@ -1,10 +1,10 @@
 import secrets
 import string
 import json
+from datetime import date
 from typing import List, Dict
 
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 from database.connect import engine
 from database.models import City
@@ -17,6 +17,18 @@ def generate_password(length: int = 8) -> str:
     characters = string.ascii_letters + string.digits
     password = ''.join(secrets.choice(characters) for _ in range(length))
     return password
+
+
+def generate_auth_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def calculate_age(birth_date: date) -> int:
+    today = date.today()
+    age = today.year - birth_date.year
+    if today < birth_date.replace(year=today.year):
+        age -= 1
+    return age
 
 
 def update_cities_table_from_json_bulk(path: str):

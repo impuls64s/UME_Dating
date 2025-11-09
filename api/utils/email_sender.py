@@ -38,4 +38,4 @@ async def send_password(to_email: str, password: str) -> bool:
 
 
 # import asyncio
-# print(asyncio.run(send_password('impuls_64@mail.ru', 'qweqwe1234')))
+# print(asyncio.run(send_password('impuls64g@gmail.com', 'qweqwe1234')))

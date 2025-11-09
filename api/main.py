@@ -4,6 +4,7 @@ from fastapi import  FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from views.auth import router as auth_router
 from views.service import router as service_router
@@ -29,6 +30,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 
 @app.exception_handler(RequestValidationError)

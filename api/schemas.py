@@ -1,7 +1,10 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr, ValidationError, model_validator
-from datetime import date
-from typing import Optional
 import re
+from datetime import date
+from typing import Dict, List, Optional, Any
+
+from fastapi import Form
+from pydantic import BaseModel, Field, field_validator, EmailStr, ValidationError, model_validator
+
 from constants import BodyType, Gender, Status
 
 
@@ -13,6 +16,7 @@ class RegistrationForm(BaseModel):
     body_type: BodyType = Field(description="Тип телосложения")
     gender: Gender = Field(description="Пол")
     city_id: int = Field(description="Город")
+    device_info: Dict[str, Any]
 
     @field_validator('name')
     def validate_name(cls, v):
@@ -31,21 +35,30 @@ class RegistrationForm(BaseModel):
         return v
 
 
+class LoginForm(BaseModel):
+    email: EmailStr
+    password: str
+    # email: str = Form(...),
+    # password: str = Form(...),
+
+
 class Token(BaseModel):
-    access_token: str
-    token_type: str
+    user_id: int
+    token: str
 
 
 class UserData(BaseModel):
     id: int
     email: EmailStr
     name: str
+    age: int
     status: Status
-    birth_date: date
     height: int
     body_type: BodyType
     gender: Gender
-    city_id: int
+    city: str
+    avatar: str
+    photos: List[str]
 
 
 class ChangePasswordRequest(BaseModel):

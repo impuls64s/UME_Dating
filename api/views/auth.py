@@ -9,14 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from utils.common import generate_password
+from database.connect import get_db
+from database.models import User, Photo, AuthToken
+from utils.common import generate_password, generate_auth_token
 from utils.email_sender import send_password
 from constants import ALLOWED_PHOTO_EXTENSIONS, PhotoType
 from config import STORAGE_UPLOADS
-from schemas import RegistrationForm, Token
-from database.connect import get_db
-from database.models import User, Photo
-from utils.jwt_manager import create_access_token
+from schemas import RegistrationForm, LoginForm, Token
+
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ router = APIRouter()
 
 @router.post("/registration/", status_code=status.HTTP_201_CREATED)
 async def registration(form: RegistrationForm, db: Session = Depends(get_db)):
+    print(form.device_info)
     try:
         stmt = select(User).where(User.email == form.email)
         existing_user = db.scalars(stmt).one_or_none()
@@ -54,7 +55,7 @@ async def registration(form: RegistrationForm, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Внутренняя ошибка сервера при регистрации"
+            detail=f"Внутренняя ошибка сервера при регистрации: {e}"
         )
 
     return {
@@ -123,8 +124,6 @@ async def verification(
     return {
         "status": "success",
         "message": "Фото успешно загружены",
-        # "avatar_path": str(avatar_path),
-        # "verification_path": str(verification_path),
         "user_id": user_id
     }
 
@@ -142,20 +141,31 @@ async def get_verification_status(user_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/token/")
+@router.post("/login/")
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: Session = Depends(get_db)
-) -> Token:
+    # username: str = Form(...), password: str = Form(...), 
+    db: Session = Depends(get_db)):
     stmt = select(User).where(User.email == form_data.username)
     user = db.scalars(stmt).one_or_none()
     if not user or not user.verify_password(form_data.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Неверный email или пароль",
         )
 
-    payload = {"sub": user.id, "email": user.email, "status": user.status}
-    access_token = create_access_token(payload)
-    return Token(access_token=access_token, token_type="bearer")
+    stmt = select(AuthToken).where(AuthToken.user_id == user.id, AuthToken.is_active.is_(True))
+    auth_token = db.scalars(stmt).one_or_none()
+    if auth_token:
+        token = auth_token.token
+    else:
+        token = generate_auth_token()
+        auth_token = AuthToken(
+            token=token,
+            user_id=user.id
+        )
+        db.add(auth_token)
+        db.commit()
+
+    # return Token(user_id=user.id, token=token)
+    return {"access_token": token, "token_type": "bearer"}

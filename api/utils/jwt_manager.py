@@ -1,26 +1,26 @@
-from datetime import datetime, timedelta, timezone
+# from datetime import datetime, timedelta, timezone
 
-import jwt
+# import jwt
 
-from config import JWTSettings
-
-
-TYPE_ACCESS_TOKEN = 'access'
-TYPE_REFRESH_TOKEN = 'refresh'  # Не используется 
+# from config import JWTSettings
 
 
-def create_access_token(payload: dict) -> str:
-    to_encode = payload.copy()
-    now = datetime.now(timezone.utc)
-    expire = now + timedelta(minutes=JWTSettings.access_token_expire_minutes)
-    to_encode.update({"exp": expire, 'iat': now})
-    encoded_jwt = jwt.encode(to_encode, JWTSettings.secret_key, algorithm=JWTSettings.algorithm)
-    return encoded_jwt
+# TYPE_ACCESS_TOKEN = 'access'
+# TYPE_REFRESH_TOKEN = 'refresh'  # Не используется 
 
 
-def verify_token(token: str) -> dict | str:
-    decoded_token = jwt.decode(token, JWTSettings.secret_key, algorithms=[JWTSettings.algorithm])
-    return decoded_token
+# def create_access_token(payload: dict) -> str:
+#     to_encode = payload.copy()
+#     now = datetime.now(timezone.utc)
+#     expire = now + timedelta(minutes=JWTSettings.access_token_expire_minutes)
+#     to_encode.update({"exp": expire, 'iat': now})
+#     encoded_jwt = jwt.encode(to_encode, JWTSettings.secret_key, algorithm=JWTSettings.algorithm)
+#     return encoded_jwt
+
+
+# def verify_token(token: str) -> dict | str:
+#     decoded_token = jwt.decode(token, JWTSettings.secret_key, algorithms=[JWTSettings.algorithm])
+#     return decoded_token
 
 
 

@@ -1,8 +1,9 @@
 from typing import List, Optional
+
 from datetime import date, datetime, timezone
 
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import ForeignKey, String, Enum as SQLEnum, Index, UniqueConstraint
+from sqlalchemy import ForeignKey, String, Enum as SQLEnum, Index, UniqueConstraint, JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from constants import BodyType, Gender, Status, PhotoType
@@ -10,6 +11,21 @@ from constants import BodyType, Gender, Status, PhotoType
 
 class Base(DeclarativeBase):
     pass
+
+
+class AuthToken(Base):
+    __tablename__ = "auth_tokens"
+    __table_args__ = (Index('idx_token_active', 'token', 'is_active'),)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    token: Mapped[str] = mapped_column(primary_key=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
+
+    user: Mapped["User"] = relationship(back_populates="auth_tokens")
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(user_id={self.user_id!r})"
 
 
 class User(Base):
@@ -25,9 +41,11 @@ class User(Base):
     gender: Mapped[Gender] = mapped_column(SQLEnum(Gender))
     city_id: Mapped[int] = mapped_column(ForeignKey("cities.id"))
     status: Mapped[Status] = mapped_column(SQLEnum(Status), default=Status.PENDING)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
+    device_info: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     last_login: Mapped[datetime] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
 
+    auth_tokens: Mapped["AuthToken"] = relationship(back_populates="user")
     city: Mapped["City"] = relationship(back_populates="users")
     photos: Mapped[List["Photo"]] = relationship(back_populates="user")
 
@@ -44,7 +62,7 @@ class User(Base):
 class City(Base):
     __tablename__ = "cities"
     __table_args__ = (
-        Index('ix_cities_name', 'name'),
+        Index('idx_cities_name', 'name'),
         UniqueConstraint('name', 'region', name='uq_city_region')
     )
 
