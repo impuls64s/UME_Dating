@@ -1,8 +1,12 @@
+import { getAuthToken } from '@/api/axiosClient';
 import BasicButton from '@/components/Buttons';
 import { BasicTextField } from '@/components/Fields';
+import { STORAGE_KEYS } from '@/constants';
+import { storeData } from '@/utils/storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,11 +22,47 @@ export default function DatingAppLogin() {
   const [password, setPassword] = useState('');
   const [isLoginFocused, setIsLoginFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [errors, setErrors] = useState('');
   const router = useRouter();
+  const axios = require('axios');
 
-  const handleLogin = () => {
-    // Обработка входа
+  const handleLogin = async () => {
     console.log('Login attempt:', { login, password });
+    
+    if (!login.trim() || !password.trim()) {
+      setErrors('Заполните все поля');
+      return;
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(login.trim())) {
+      setErrors('Введите корректный email');
+      return;
+    }
+
+    setErrors('');
+
+    try {
+      const data = await getAuthToken(login, password);
+      await storeData(STORAGE_KEYS.ACCESS_TOKEN, data.access_token)
+      router.navigate('/(tabs)/profile');
+
+    } catch (err: any) {
+      if (axios.isAxiosError(err)) {
+        const errorMessage = err.response?.data?.message;
+        setErrors(errorMessage)
+
+      } else {
+        console.error('Unexpected error:', err);
+        const errorMessage = 'Неожиданная ошибка. Попробуйте еще раз.';
+        if (typeof window !== 'undefined') {
+          window.alert(`Ошибка: ${errorMessage}`);
+        } else {
+          Alert.alert('Ошибка', errorMessage);
+        }
+      } 
+    }
+
   };
 
   const handleForgotPassword = () => {
@@ -61,6 +101,9 @@ export default function DatingAppLogin() {
               setIsFocusedFunc={setIsLoginFocused}
               keyboardType="email-address"
             />
+            <Text style={styles.errorText}>
+              {errors && <Text>{errors}</Text>}
+            </Text>
 
             <BasicTextField
               placeholder="Пароль"
@@ -174,5 +217,10 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 5,
+  },
+  errorText: {
+    color: '#ff3b30',
+    fontSize: 14,
+    marginBottom: 20,
   },
 });

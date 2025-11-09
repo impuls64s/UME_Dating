@@ -1,3 +1,4 @@
+import { getDeviceInfo } from '@/utils/common';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import * as I from '../types/api';
@@ -26,6 +27,8 @@ export const getAllCities = async () => {
 
 export const createUser = async (formData: I.UserFormData) => {
   try {
+    const deviceInfo = await getDeviceInfo();
+
     const payload = {
       email: formData.email,
       name: formData.name,
@@ -34,6 +37,7 @@ export const createUser = async (formData: I.UserFormData) => {
       gender: formData.gender,
       city_id: formData.cityId,
       body_type: formData.bodyType,
+      device_info: deviceInfo
     };
     const response = await axios.post(EP.REGISTRATION, payload, {
       headers: HEADERS,
@@ -100,6 +104,58 @@ export const verification = async (photoUri: string, selfieUri: string, userId: 
     return response.data;
   } catch (error) {
     console.error('Error in verification:', error);
+    throw error;
+  }
+};
+
+
+export const checkUserStatus = async (userId: number) => {
+  try {
+    const response = await axios.get(EP.VERIFICATION_STATUS + userId, {headers: HEADERS});
+    return response.data;
+
+  } catch (error) {
+    console.error('Error in checkUserStatus:', error);
+    throw error;
+  }
+};
+
+
+export const getAuthToken = async (email: string, password: string) => {
+  try {
+
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await axios.post(EP.LOGIN, formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+    return response.data;
+
+  } catch (error) {
+    console.error('Error in Login:', error);
+    throw error;
+  }
+};
+
+
+export const getMyProfile = async (accessToken: string): Promise<I.MyProfile> => {
+  try {
+
+    const response = await axios.get(EP.MY_PROFILE, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.data;
+
+  } catch (error) {
+    console.error('Error fetching my profile:', error);
     throw error;
   }
 };

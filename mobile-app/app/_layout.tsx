@@ -3,7 +3,12 @@ import { Stack } from 'expo-router';
 
 export default function RootLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerShown: false // ← Скрыть заголовки глобально
+      }}
+    >
+
       <Stack.Screen name="index" options={{ headerShown: false , title: 'Вход'}} />
       <Stack.Screen name="registration" options={{ 
         headerShown: true,
@@ -20,11 +25,13 @@ export default function RootLayout() {
       }} />
       <Stack.Screen name="pending" options={{ 
         headerShown: true,
-        title: 'Ожидание одобрения профиля',
+        title: 'Проверка профиля',
         headerStyle: { backgroundColor: '#151718' },
         headerTintColor: '#ffffff',
         headerBackTitle: 'Назад',
       }} />
+      <Stack.Screen name="(tabs)" />
+
     </Stack>
   );
 }

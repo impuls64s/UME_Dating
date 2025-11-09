@@ -1,8 +1,8 @@
 import { createUser, getAllCities } from '@/api/axiosClient';
 import BasicButton from '@/components/Buttons';
 import { BasicNumericField, BasicTextField } from '@/components/Fields';
-import { storeData } from '@/components/Storage';
-import { GENDERS, bodyTypeOptions } from '@/constants';
+import { GENDERS, STORAGE_KEYS, bodyTypeOptions } from '@/constants';
+import { storeData } from '@/utils/storage';
 import DatePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -64,11 +64,11 @@ export default function RegistrationScreen() {
       console.log('Registration data:', formData);
       const result = await createUser(formData);
       console.log('User created successfully:', result);
-      
+
       // Дополнительная проверка успешности ответа
       if (result.success) {
         const userId = result.user_id || result.data?.user_id;
-        await storeData('userId', userId)
+        await storeData(STORAGE_KEYS.USER_ID, userId.toString())
         router.navigate('/verification');
       } else {
         // Обработка случая когда API возвращает success: false
@@ -226,13 +226,6 @@ export default function RegistrationScreen() {
                 value={formData.birthDate.toISOString().split('T')[0]}
                 onChange={(e) => {
                     const newDate = new Date(e.target.value);
-                    // const [year, month, day] = e.target.value.split('-');
-                    // const newDate = new Date(Date.UTC(
-                    //   parseInt(year), 
-                    //   parseInt(month) - 1, 
-                    //   parseInt(day),
-                    //   12, 0, 0 // полдень по UTC чтобы избежать смещений
-                    // ));
                     setFormData(prev => ({ ...prev, birthDate: newDate }));
                 }}
                 style={{
@@ -283,7 +276,7 @@ export default function RegistrationScreen() {
             <View style={{ width: '32%' }}>
               <Text style={styles.label}>Рост (см)</Text>
               <BasicNumericField
-                  placeholder="170"
+                  placeholder=""
                   isFocused={isHeightFocused}
                   value={formData.height}
                   // setFunc={(value) => handleInputChange('height', value)}
@@ -457,8 +450,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#ff3b30',
     fontSize: 14,
-    marginTop: 4,
-    marginLeft: 4,
+    marginBottom: 8,
   },
 
 });

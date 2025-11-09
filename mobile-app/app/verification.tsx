@@ -1,6 +1,7 @@
 import { verification } from '@/api/axiosClient';
 import BasicButton from '@/components/Buttons';
-import { getData } from '@/components/Storage';
+import { STORAGE_KEYS } from '@/constants';
+import { getData } from '@/utils/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -76,7 +77,7 @@ export default function VerificationScreen() {
     }
 
     try {
-      const userId = await getData('userId');
+      const userId = await getData(STORAGE_KEYS.USER_ID);
       if (!userId) {
         Alert.alert('Ошибка', 'User ID не найден. Пожалуйста, пройдите регистрацию заново.');
         router.navigate('/registration');
