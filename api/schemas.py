@@ -57,8 +57,25 @@ class UserData(BaseModel):
     body_type: BodyType
     gender: Gender
     city: str
+    city_id: int
     avatar: str
     photos: List[str]
+    bio: Optional[str]
+    desires: Optional[str]
+
+
+class UserEditForm(BaseModel):
+    name: str
+    height: int
+    body_type: BodyType
+    city_id: int
+    bio: Optional[str]
+    desires: Optional[str]
+
+# class UserEditFormResponse(BaseModel):
+#     id: int
+#     name: str
+#     email: str
 
 
 class ChangePasswordRequest(BaseModel):

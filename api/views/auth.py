@@ -25,7 +25,6 @@ router = APIRouter()
 
 @router.post("/registration/", status_code=status.HTTP_201_CREATED)
 async def registration(form: RegistrationForm, db: Session = Depends(get_db)):
-    print(form.device_info)
     try:
         stmt = select(User).where(User.email == form.email)
         existing_user = db.scalars(stmt).one_or_none()

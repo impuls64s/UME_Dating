@@ -1,4 +1,3 @@
-
 from enum import Enum
 
 class BodyType(str, Enum):

@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import date, datetime, timezone
 
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import ForeignKey, String, Enum as SQLEnum, Index, UniqueConstraint, JSON
+from sqlalchemy import ForeignKey, String, Enum as SQLEnum, Index, UniqueConstraint, JSON, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from constants import BodyType, Gender, Status, PhotoType
@@ -42,6 +42,8 @@ class User(Base):
     city_id: Mapped[int] = mapped_column(ForeignKey("cities.id"))
     status: Mapped[Status] = mapped_column(SQLEnum(Status), default=Status.PENDING)
     device_info: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Биография пользователя")
+    desires: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Пожелания пользователя")
     last_login: Mapped[datetime] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc))
 

@@ -11,7 +11,7 @@ from constants import PhotoType
 from database.connect import get_db
 from database.models import User, AuthToken
 from utils.common import calculate_age
-from schemas import UserData, ChangePasswordRequest
+from schemas import UserData, ChangePasswordRequest, UserEditForm
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/")
@@ -43,15 +43,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
     return user
 
 
-@router.get("/users/me/", response_model=UserData)
-async def read_users_me(
-    request: Request,
-    current_user: Annotated[User, Depends(get_current_user)],
-):
+def get_user_data(request: Request, user: User) -> UserData:
     avatar = ''
     photos = []
     base_url = str(request.base_url)
-    for img in current_user.photos:
+    for img in user.photos:
         full_path = urljoin(base_url, img.file_path)
         if img.photo_type == PhotoType.AVATAR:
             avatar = full_path
@@ -59,20 +55,40 @@ async def read_users_me(
             continue
         photos.append(full_path)
 
-    print('meee')
     return UserData(
-        id = current_user.id,
-        email = current_user.email,
-        name = current_user.name,
-        age = calculate_age(current_user.birth_date),
-        status = current_user.status,
-        height = current_user.height,
-        body_type = current_user.body_type,
-        gender = current_user.gender,
-        city = current_user.city.full_name,
+        id = user.id,
+        email = user.email,
+        name = user.name,
+        age = calculate_age(user.birth_date),
+        status = user.status,
+        height = user.height,
+        body_type = user.body_type,
+        gender = user.gender,
+        city = user.city.full_name,
+        city_id = user.city_id,
         avatar = avatar,
         photos = photos,
+        bio = user.bio,
+        desires = user.desires,
     )
+
+
+@router.get("/users/me/", response_model=UserData)
+async def read_users_me(request: Request, user: Annotated[User, Depends(get_current_user)]):
+    return get_user_data(request, user)
+
+
+@router.post("/users/edit/", response_model=UserData)
+async def edit_user(request: Request, form: UserEditForm, user: Annotated[User, Depends(get_current_user)], db: Session = Depends(get_db)):  
+    user.name = form.name
+    user.city_id = form.city_id
+    user.height = form.height
+    user.body_type = form.body_type
+    user.bio = form.bio
+    user.desires = form.desires
+    db.commit()
+    db.refresh(user)
+    return get_user_data(request, user)
 
 
 @router.post("/users/change_password/")
