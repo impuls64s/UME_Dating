@@ -10,6 +10,7 @@ type Props = {
     keyboardType?: KeyboardTypeOptions;
     secureTextEntry?: boolean;
     autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+    multiline?: boolean; // ← новый пропс
 };
 
 
@@ -21,11 +22,12 @@ export function BasicTextField({
     setIsFocusedFunc,
     keyboardType = 'default',
     secureTextEntry = false,
-    autoCapitalize = 'none'
+    autoCapitalize = 'none',
+    multiline = false
 }: Props) {
     return (
         <TextInput
-            style={[styles.input, isFocused && styles.inputFocused]}
+            style={[styles.input, isFocused && styles.inputFocused, multiline && styles.multilineInput]}
             placeholder={placeholder}
             placeholderTextColor="#888"
             value={value}
@@ -35,6 +37,8 @@ export function BasicTextField({
             autoCapitalize={autoCapitalize || "none"}
             keyboardType={keyboardType || 'default'}
             secureTextEntry={secureTextEntry}
+            multiline={multiline} // ← включаем многострочность
+            textAlignVertical={multiline ? 'top' : 'center'} // ← выравнивание для многострочности
         />
     );
 }
@@ -94,5 +98,10 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.3,
         shadowRadius: 10,
+    },
+    multilineInput: {
+        height: 100, // ← в 2 раза больше
+        paddingTop: 12, // ← добавляем отступ сверху для текста
+        paddingBottom: 12,
     },
 })

@@ -65,7 +65,7 @@ export default function TabLayout() {
 
       {/* 5. Профиль */}
       <Tabs.Screen 
-        name="profile/index" 
+        name="profile" 
         options={{
           title: 'Профиль',
           // headerStyle: { backgroundColor: '#151718' },

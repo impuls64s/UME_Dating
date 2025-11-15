@@ -24,7 +24,8 @@ export interface UserFormErrors {
   bodyType?: string;
 }
 
-export interface MyProfile {
+
+export interface UserProfile {
   id: number;
   email: string;
   name: string;
@@ -34,6 +35,37 @@ export interface MyProfile {
   bodyType: string;
   gender: string;
   city: string;
+  cityId: number;
   avatar: string;
   photos: string[];
+  bio: string;
+  desires: string;
+}
+
+
+export const adaptUserProfile = (data: any): UserProfile => ({
+  id: data.id,
+  email: data.email,
+  name: data.name,
+  age: data.age,
+  status: data.status,
+  height: data.height,
+  bodyType: data.body_type,  // преобразуем
+  gender: data.gender,
+  city: data.city,
+  cityId: data.city_id,      // преобразуем
+  avatar: data.avatar,
+  photos: data.photos,
+  bio: data.bio,
+  desires: data.desires,
+});
+
+
+export interface EditProfile {
+  name: string;
+  cityId: string;
+  height: number;
+  bodyType: string;
+  bio: string;
+  desires: string;
 }

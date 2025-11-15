@@ -211,6 +211,7 @@ export default function RegistrationScreen() {
               onFocus={() => setIsCityFocused(true)}
               onBlur={() => setIsCityFocused(false)}
               value={formData.cityId}
+              mode='auto'
             />
           </View>
           {errors.cityId && (<Text style={styles.errorText}>{errors.cityId}</Text>)}
@@ -280,7 +281,10 @@ export default function RegistrationScreen() {
                   isFocused={isHeightFocused}
                   value={formData.height}
                   // setFunc={(value) => handleInputChange('height', value)}
-                  setFunc={(value) => handleInputChange('height', value ? parseInt(value, 10) : '')}
+                  setFunc={(value) => {
+                    const numericValue = value.replace(/[^0-9]/g, '');
+                    handleInputChange('height', numericValue);
+                  }}
                   setIsFocusedFunc={setIsHeightFocused}
                   maxLength={3}
                   keyboardType="numeric"

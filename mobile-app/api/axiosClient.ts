@@ -2,6 +2,7 @@ import { getDeviceInfo } from '@/utils/common';
 import axios from 'axios';
 import { Platform } from 'react-native';
 import * as I from '../types/api';
+import { adaptUserProfile } from '../types/api';
 import * as EP from './endpoints';
 
 
@@ -142,7 +143,7 @@ export const getAuthToken = async (email: string, password: string) => {
 };
 
 
-export const getMyProfile = async (accessToken: string): Promise<I.MyProfile> => {
+export const fetchUserProfile = async (accessToken: string): Promise<I.UserProfile> => {
   try {
 
     const response = await axios.get(EP.MY_PROFILE, {
@@ -152,10 +153,44 @@ export const getMyProfile = async (accessToken: string): Promise<I.MyProfile> =>
       },
     });
 
-    return response.data;
+    return adaptUserProfile(response.data);
 
   } catch (error) {
     console.error('Error fetching my profile:', error);
     throw error;
   }
+};
+
+
+export const editUserProfile = async (accessToken: string, formData: {
+  name: string;
+  height: number | null;
+  cityId: number | null;
+  bodyType: string;
+  bio: string;
+  desires: string;
+}): Promise<I.UserProfile> => {
+  try {
+    const requestData = {
+      name: formData.name,
+      height: formData.height,
+      body_type: formData.bodyType,
+      city_id: formData.cityId,
+      bio: formData.bio || null,
+      desires: formData.desires || null
+    };
+
+    const response = await axios.post(EP.EDIT_PROFILE, requestData, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return adaptUserProfile(response.data);
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  } 
 };

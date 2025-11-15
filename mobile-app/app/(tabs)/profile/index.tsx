@@ -1,75 +1,24 @@
-import { getMyProfile } from '@/api/axiosClient';
-import { STORAGE_KEYS } from '@/constants';
-import { getData } from '@/utils/storage';
+import { getUserProfile } from '@/utils/common';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as I from '../../../types/api';
 
 
-export default function ProfileScreen() {
-  const [userProfile, setUserProfile] = useState<I.MyProfile | null>(null);
+export default function ProfileScreen () {
+  const [userProfile, setUserProfile] = useState<I.UserProfile | null>(null);
   const photoCount = userProfile?.photos?.length || 0;
   const router = useRouter();
 
-  // Пример данных пользователя
-  const user = {
-    name: 'Анна',
-    age: 25,
-    city: 'Москва',
-    bio: 'Люблю путешествия, искусство и интересные беседы. Ищу серьезные отношения.',
-    photos: [
-      'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150',
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
-      'http://127.0.0.1:8000/storage/uploads/user_1/avatar_user_id_1.jpg',
-    ],
-    stats: {
-      likes: 124,
-      matches: 23,
-      visitors: 456
-    }
-  };
-
   useEffect(() => {
-
     const loadProfile = async () => {
-      
-      const accessToken = await getData(STORAGE_KEYS.ACCESS_TOKEN);
-      console.log('AT', accessToken)
-      if (!accessToken || accessToken === 'undefined') {
-        Alert.alert('Ошибка', 'accessToken не найден. Пожалуйста, пройдите аутентификацию заново.');
-        router.navigate('/');
-        return;
-      }
-  
-      try {
-        let profile;
-        
-        // Пробуем загрузить из кэша
-        // const cachedProfile = await getData(STORAGE_KEYS.CACHED_PROFILE);
-        // if (cachedProfile && cachedProfile !== 'undefined') {
-        //   profile = JSON.parse(cachedProfile);
-        //   console.log('Loaded from cache');
-        // } else {
-        //   // Загружаем с сервера
-        //   profile = await getMyProfile(accessToken);
-        //   await storeData(STORAGE_KEYS.CACHED_PROFILE, JSON.stringify(profile));
-        //   await storeData(STORAGE_KEYS.PROFILE_LAST_UPDATE, Date.now().toString());
-        //   console.log('Loaded from API');
-        // }
-        
-        profile = await getMyProfile(accessToken);
+      const profile = await getUserProfile();
+      if (profile) {
         setUserProfile(profile);
-        console.log('My Profile:', profile);
-      
-      } catch (error) {
-        console.error('Failed to load profile:', error);
       }
-
     };
-
+  
     loadProfile();
   }, []);
 
@@ -96,17 +45,7 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
-    
-        {/* <View style={styles.avatarContainer}>
-          <Image 
-            source={{ uri: user.photos[0] }} 
-            style={styles.avatar}
-          />
-          <TouchableOpacity style={styles.editAvatarBtn}>
-            <Ionicons name="camera" size={20} color="#ffffff" />
-          </TouchableOpacity>
-        </View> */}
-        
+
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{userProfile?.name}, {userProfile?.age}</Text>
           <View style={styles.location}>
@@ -115,36 +54,50 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => router.push('/profile/edit')}
-        >
+        <Link href="/profile/edit">
           <Ionicons name="create-outline" size={24} color="#007bff" />
-        </TouchableOpacity>
+        </Link>
+
       </View>
 
       {/* Статистика */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{user.stats.likes}</Text>
+          <Text style={styles.statNumber}>💎 1000</Text>
+          <Text style={styles.statLabel}>Рейтинг</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>🤍 124</Text>
           <Text style={styles.statLabel}>Лайков</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{user.stats.matches}</Text>
+          <Text style={styles.statNumber}>❤️ 64</Text>
           <Text style={styles.statLabel}>Мэтчи</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{user.stats.visitors}</Text>
-          <Text style={styles.statLabel}>Гости</Text>
         </View>
       </View>
 
       {/* О себе */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>О себе</Text>
-        <Text style={styles.bioText}>{user.bio}</Text>
+        <Text style={[
+          styles.bioText,
+          !userProfile?.bio && styles.placeholderText
+        ]}>
+          {userProfile?.bio || "Не заполнено"}
+        </Text>
+      </View>
+
+      {/* Я хочу */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Я хочу</Text>
+        <Text style={[
+          styles.bioText,
+          !userProfile?.desires && styles.placeholderText
+        ]}>
+          {userProfile?.desires || "Не заполнено"}
+        </Text>
       </View>
 
       {/* Фотографии */}
@@ -245,9 +198,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8e8e93',
     marginLeft: 4,
-  },
-  editButton: {
-    padding: 8,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -351,6 +301,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1c1d1e',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  placeholderText: {
+    fontStyle: 'italic',
+    opacity: 0.6,
+    color: '#cccccc',
   },
 
 });
