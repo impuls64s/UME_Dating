@@ -72,10 +72,9 @@ class UserEditForm(BaseModel):
     bio: Optional[str]
     desires: Optional[str]
 
-# class UserEditFormResponse(BaseModel):
-#     id: int
-#     name: str
-#     email: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
 
 
 class ChangePasswordRequest(BaseModel):

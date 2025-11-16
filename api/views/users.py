@@ -1,17 +1,25 @@
 import logging
-from typing import Annotated
+import secrets
+import shutil
+import string
+from typing import Annotated, List
 from urllib.parse import urljoin
+from pathlib import Path
 
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi import APIRouter, HTTPException, status, Depends, Request, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload, selectinload
 
-from constants import PhotoType
+
+from constants import ALLOWED_PHOTO_EXTENSIONS, PhotoType, MAX_PHOTOS
 from database.connect import get_db
-from database.models import User, AuthToken
-from utils.common import calculate_age
-from schemas import UserData, ChangePasswordRequest, UserEditForm
+from database.models import Photo, User, AuthToken
+from utils.common import calculate_age, generate_password
+from utils.email_sender import send_password
+from schemas import UserData, ChangePasswordRequest, UserEditForm, ResetPasswordRequest
+from config import STORAGE_UPLOADS
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/")
@@ -31,8 +39,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
         )
 
     # Получаем пользователя
-    user_stmt = select(User).where(User.id == auth_token.user_id)
-    user = db.scalars(user_stmt).one_or_none()
+    user_stmt = (
+        select(User)
+        .options(
+            joinedload(User.city),
+            selectinload(User.photos)
+        )
+        .where(User.id == auth_token.user_id)
+    )
+
+    user = db.scalars(user_stmt).unique().one_or_none()
     
     if not user:
         raise HTTPException(
@@ -92,10 +108,7 @@ async def edit_user(request: Request, form: UserEditForm, user: Annotated[User, 
 
 
 @router.post("/users/change_password/")
-async def change_password(
-    password_data: ChangePasswordRequest,
-    db: Session = Depends(get_db)
-):
+async def change_password(password_data: ChangePasswordRequest, db: Session = Depends(get_db)):
     stmt = select(User).where(User.email == password_data.email)
     user = db.scalars(stmt).one_or_none()
 
@@ -112,3 +125,93 @@ async def change_password(
         "success": True,
         "message": "Пароль успешно изменен",
     }
+
+
+@router.post("/users/reset_password/")
+async def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    stmt = select(User).where(User.email == data.email)
+    user = db.scalars(stmt).one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь с таким email не найден"
+        )
+
+    new_password = generate_password()
+    print("NEW PWD", new_password) # Удалить
+    user.set_password(new_password)
+    db.commit()
+
+    await send_password(user.email, new_password)
+
+    return {
+        "success": True,
+        "message": "Новый пароль сгенерирован и отправлен на email",
+    }
+
+
+@router.post("/users/photos/upload/")
+async def upload_profile_photos(
+    current_user: Annotated[User, Depends(get_current_user)],
+    photos: List[UploadFile] = File(..., description="Фотографии профиля"),
+    db: Session = Depends(get_db)
+):
+    if len(photos) + len(current_user.photos) > MAX_PHOTOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Максимальное количество фото: {MAX_PHOTOS - 1}"
+        )
+
+    user_id = current_user.id
+    user_dir = STORAGE_UPLOADS / f'user_{user_id}'
+    user_dir.mkdir(parents=True, exist_ok=True)
+
+    uploaded_photos = []
+
+    try:
+        for i, photo in enumerate(photos):
+            photo_ext = Path(photo.filename).suffix.lower()
+            if not photo_ext or photo_ext not in ALLOWED_PHOTO_EXTENSIONS:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Не допустимый формат файла: {photo.filename}"
+                )
+
+            random_suffix = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+            photo_filename = f"profile_photo_{user_id}_{i}_{random_suffix}{photo_ext}"
+            photo_path = user_dir / photo_filename
+
+            with open(photo_path, "wb") as buffer:
+                shutil.copyfileobj(photo.file, buffer)
+
+            db_photo = Photo(
+                user_id=user_id,
+                file_path=str(photo_path),
+                photo_type=PhotoType.PENDING
+            )
+            db.add(db_photo)
+            uploaded_photos.append(str(photo_path))
+
+        # # Коммитим все изменения
+        db.commit()
+
+        return {
+            "success": True,
+            "message": f"Успешно загружено {len(uploaded_photos)} фото",
+            "user_id": user_id,
+            "uploaded_photos": uploaded_photos,
+        }
+
+    except Exception as e:
+        for photo_path in uploaded_photos:
+            try:
+                Path(photo_path).unlink(missing_ok=True)
+            except:
+                pass
+        db.rollback()
+        logger.error(str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при загрузке фото: {str(e)}"
+        )

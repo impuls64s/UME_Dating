@@ -4,7 +4,7 @@ export interface UserFormData {
   birthDate: Date;
   height: string;
   gender: string;
-  cityId: string;
+  cityId: number | null;
   bodyType: string;
 }
 

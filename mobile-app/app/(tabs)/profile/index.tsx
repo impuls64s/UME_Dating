@@ -1,26 +1,83 @@
-import { getUserProfile } from '@/utils/common';
+import { getUserProfile, uploadPhotos } from '@/api/axiosClient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Link, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, FlatList, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as I from '../../../types/api';
 
 
 export default function ProfileScreen () {
-  const [userProfile, setUserProfile] = useState<I.UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<I.UserProfile>();
   const photoCount = userProfile?.photos?.length || 0;
+  const currentPhotos = userProfile?.photos || [];
   const router = useRouter();
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const profile = await getUserProfile();
-      if (profile) {
-        setUserProfile(profile);
-      }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const loadProfile = async () => {
+        const profile = await getUserProfile();
+        if (profile) setUserProfile(profile);
+      };
   
-    loadProfile();
-  }, []);
+      console.log('FOCUS REFRESH');
+      loadProfile();
+    }, [])
+  );
+
+  const handleAddPhoto = async () => {
+    try {
+      // Запрашиваем разрешения
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Нужно разрешение для доступа к фото');
+        return;
+      }
+
+      // Открываем галерею
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        allowsMultipleSelection: true,
+        selectionLimit: 5,
+      });
+
+      if (!result.canceled && result.assets) {
+        // Здесь обрабатываем выбранные фото
+        const newPhotos = result.assets.map(asset => asset.uri);
+        console.log('newPhotos', newPhotos)
+        // Отправляем на сервер (пример)
+        if (userProfile) {
+          const response = await uploadPhotos(newPhotos, userProfile.id);
+          console.log('Response =>', response)
+        }
+
+        // Обновляем UI
+        // setUserProfile(prev => prev ? {
+        //   ...prev,
+        //   photos: [...prev.photos, ...newPhotos]
+        // } : null);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Ошибка', 'Не удалось выбрать фото');
+    }
+  };
+
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+
+  const openPhoto = (index: number) => {
+    setSelectedPhotoIndex(index);
+  };
+
+  const closePhoto = () => {
+    setSelectedPhotoIndex(null);
+  };
+
 
   return (
     <ScrollView 
@@ -37,6 +94,7 @@ export default function ProfileScreen () {
               <Image 
                 source={{ uri: userProfile?.avatar }} 
                 style={styles.avatar}
+                contentFit="cover"
               />
             </View>
           ) : (
@@ -108,16 +166,87 @@ export default function ProfileScreen () {
             <Text style={styles.seeAllText}>Все</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
-          {userProfile?.photos.map((photo, index) => (
-            <TouchableOpacity key={index} style={styles.photoItem}>
-              <Image source={{ uri: photo }} style={styles.photo} />
+
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={Platform.OS === 'web'}
+          data={userProfile?.photos || []}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity style={styles.photoItem} onPress={() => openPhoto(index)}>
+              <Image source={{ uri: item }} style={styles.photo} />
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.addPhotoBtn}>
-            <Ionicons name="add" size={32} color="#8e8e93" />
-          </TouchableOpacity>
-        </ScrollView>
+          )}
+          ListFooterComponent={
+            <TouchableOpacity style={styles.addPhotoBtn} onPress={handleAddPhoto}>
+              <Ionicons name="add" size={32} color="#8e8e93" />
+            </TouchableOpacity>
+          }
+          style={styles.photosScroll}
+        />
+
+        {/* Модальное окно для просмотра фото с жестами */}
+        <Modal
+          visible={selectedPhotoIndex !== null}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closePhoto}
+        >
+          <View style={styles.modalOverlay}>
+            {/* Header с счетчиком и кнопкой закрытия */}
+            <View style={styles.viewerHeader}>
+              <Text style={styles.viewerCounter}>
+                {(selectedPhotoIndex ?? 0) + 1} / {currentPhotos.length}
+              </Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={closePhoto}
+              >
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Основное изображение с поддержкой жестов */}
+            {selectedPhotoIndex !== null && (
+              <Image
+                source={{ uri: currentPhotos[selectedPhotoIndex] }}
+                style={styles.fullSizePhoto}
+                contentFit="contain"
+                enableLiveTextInteraction={true}
+                accessibilityLabel={`Фото ${selectedPhotoIndex + 1} из ${currentPhotos.length}`}
+                transition={200}
+              />
+            )}
+
+            {/* Кнопки навигации */}
+            <View style={styles.navigationContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.navButton,
+                  selectedPhotoIndex === 0 && styles.navButtonDisabled
+                ]}
+                onPress={() => setSelectedPhotoIndex(prev => Math.max(0, (prev || 0) - 1))}
+                disabled={selectedPhotoIndex === 0}
+              >
+                <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.navButton,
+                  selectedPhotoIndex === currentPhotos.length - 1 && styles.navButtonDisabled
+                ]}
+                onPress={() => setSelectedPhotoIndex(prev => Math.min(currentPhotos.length - 1, (prev || 0) + 1))}
+                disabled={selectedPhotoIndex === currentPhotos.length - 1}
+              >
+                <Ionicons name="chevron-forward" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        
+
       </View>
 
       {/* Действия */}
@@ -157,7 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 80,
   },
   avatarContainer: {
     position: 'relative',
@@ -166,7 +295,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    // resizeMode: 'cover',
   },
   editAvatarBtn: {
     position: 'absolute',
@@ -185,7 +314,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 4,
@@ -195,7 +324,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationText: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#8e8e93',
     marginLeft: 4,
   },
@@ -290,8 +419,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   avatarWrapper: {
-    width: 100,
-    height: 120,
+    width: 150,
+    height: 200,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#007bff',
@@ -307,5 +436,52 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     color: '#cccccc',
   },
-
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullSizePhoto: {
+    width: '90%',
+    height: '80%',
+  },
+  viewerHeader: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 1,
+  },
+  viewerCounter: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+  },
+  navigationContainer: {
+    position: 'absolute',
+    bottom: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  navButton: {
+    padding: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+  },
+  navButtonDisabled: {
+    opacity: 0.3,
+  },
 });

@@ -30,6 +30,13 @@ export default function RootLayout() {
         headerTintColor: '#ffffff',
         headerBackTitle: 'Назад',
       }} />
+      <Stack.Screen name="reset-password" options={{ 
+        headerShown: true,
+        title: 'Сброс пароля',
+        headerStyle: { backgroundColor: '#151718' },
+        headerTintColor: '#ffffff',
+        headerBackTitle: 'Назад',
+      }} />
       <Stack.Screen name="(tabs)" />
 
     </Stack>

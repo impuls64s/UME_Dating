@@ -23,9 +23,11 @@ class Status(str, Enum):
 
 
 ALLOWED_PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+MAX_PHOTOS = 7
 
 
 class PhotoType(str, Enum):
     AVATAR = "avatar"
     GALLERY = "gallery"
     VERIFICATION = "verification"
+    PENDING = "pending"

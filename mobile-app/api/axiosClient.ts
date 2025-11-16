@@ -1,6 +1,8 @@
+import { STORAGE_KEYS } from '@/constants';
 import { getDeviceInfo } from '@/utils/common';
+import { getData, storeData } from '@/utils/storage';
 import axios from 'axios';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import * as I from '../types/api';
 import { adaptUserProfile } from '../types/api';
 import * as EP from './endpoints';
@@ -15,7 +17,7 @@ const HEADERS = {
 export const getAllCities = async () => {
   try {
     const response = await axios.get(EP.LIST_CITIES, {headers: HEADERS});
-    return response.data.items.map((item: { id: any; name: any; }) => ({
+    return response.data.items.map((item: { id: number; name: string; }) => ({
       value: item.id, 
       label: item.name
     }));
@@ -143,9 +145,15 @@ export const getAuthToken = async (email: string, password: string) => {
 };
 
 
-export const fetchUserProfile = async (accessToken: string): Promise<I.UserProfile> => {
-  try {
+export const getUserProfile = async () => {
+  const accessToken = await getData(STORAGE_KEYS.ACCESS_TOKEN);
 
+  if (!accessToken || accessToken === 'undefined') {
+    Alert.alert('Ошибка', 'accessToken не найден. Пожалуйста, пройдите аутентификацию заново.');
+    return;
+  }
+
+  try {
     const response = await axios.get(EP.MY_PROFILE, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -155,10 +163,14 @@ export const fetchUserProfile = async (accessToken: string): Promise<I.UserProfi
 
     return adaptUserProfile(response.data);
 
-  } catch (error) {
-    console.error('Error fetching my profile:', error);
-    throw error;
-  }
+  } catch (error: any) {
+    console.error('Failed to load userProfile:', error);
+    if (error.response?.status === 401) {
+      console.log('Unauthorized, redirecting to login...');
+      await storeData(STORAGE_KEYS.ACCESS_TOKEN, "");
+      return;
+    }
+    }
 };
 
 
@@ -193,4 +205,66 @@ export const editUserProfile = async (accessToken: string, formData: {
     console.error('Error updating profile:', error);
     throw error;
   } 
+};
+
+
+export const resetPassword = async (email: string) => {
+  try {
+    const response = await axios.post(EP.RESET_PASSWROD, {email: email}, {headers: HEADERS});
+    return response.data;
+
+  } catch (error) {
+    console.error('Error in Reset Password:', error);
+    throw error;
+  }
+};
+
+
+export const uploadPhotos = async (photoUris: string[], userId: number) => {
+  const accessToken = await getData(STORAGE_KEYS.ACCESS_TOKEN);
+  
+  try {
+    const formData = new FormData();
+
+    // Для браузера - создаем правильные File объекты
+    if (Platform.OS === 'web') {
+      for (let i = 0; i < photoUris.length; i++) {
+        const uri = photoUris[i];
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const file = new File([blob], `photo_${userId}_${i}.jpg`, { type: 'image/jpeg' });
+        formData.append('photos', file);
+      }
+    } else {
+      // Для React Native
+      photoUris.forEach((uri, index) => {
+        const file = {
+          uri: uri,
+          type: 'image/jpeg',
+          name: `photo_${userId}_${index}.jpg`,
+        } as any;
+        formData.append('photos', file);
+      });
+    }
+
+    console.log('Sending photos:', {
+      count: photoUris.length,
+      userId: userId
+    });
+
+    const response = await axios.post(EP.UPLOAD_PHOTOS, formData, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json',
+      },
+    });
+
+    return response.data;
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    Alert.alert('Ошибка', 'Не удалось загрузить фото');
+    throw error;
+  }
 };

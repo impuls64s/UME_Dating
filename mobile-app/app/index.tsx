@@ -66,8 +66,8 @@ export default function DatingAppLogin() {
   };
 
   const handleForgotPassword = () => {
-    // Обработка восстановления пароля
     console.log('Forgot password');
+    router.navigate('/reset-password');
   };
 
   const handleRegister = () => {
@@ -93,8 +93,9 @@ export default function DatingAppLogin() {
 
           {/* Форма входа */}
           <View style={styles.form}>
+            <Text style={styles.label}>Email</Text>
             <BasicTextField
-              placeholder="Email"
+              placeholder="username@example.com"
               isFocused={isLoginFocused}
               value={login}
               setFunc={setLogin}
@@ -105,8 +106,9 @@ export default function DatingAppLogin() {
               {errors && <Text>{errors}</Text>}
             </Text>
 
+            <Text style={styles.label}>Пароль</Text>
             <BasicTextField
-              placeholder="Пароль"
+              placeholder=""
               isFocused={isPasswordFocused}
               value={password}
               setFunc={setPassword}
@@ -133,6 +135,7 @@ export default function DatingAppLogin() {
                 </TouchableOpacity>
               </View>
             </View>
+
           </View>
         </View>
       </ScrollView>
@@ -147,7 +150,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center', Ушло ли подпрыгивание с формы?
     alignItems: 'center',
     padding: 20,
   },
@@ -207,20 +210,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
-  icon: {
-    position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconText: {
-    opacity: 0.0,
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
-  },
   errorText: {
     color: '#ff3b30',
     fontSize: 14,
     marginBottom: 20,
+  },
+  label: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginBottom: 8,
+    fontWeight: '500',
   },
 });

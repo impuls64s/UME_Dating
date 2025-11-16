@@ -1,8 +1,7 @@
-import { editUserProfile, getAllCities } from '@/api/axiosClient';
+import { editUserProfile, getAllCities, getUserProfile } from '@/api/axiosClient';
 import BasicButton from '@/components/Buttons';
 import { BasicNumericField, BasicTextField } from '@/components/Fields';
 import { bodyTypeOptions, STORAGE_KEYS } from '@/constants';
-import { getUserProfile } from '@/utils/common';
 import { getData } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,6 +9,8 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -43,7 +44,7 @@ export default function EditProfileModal() {
   });
 
   const handleClose = () => {
-    router.navigate('/(tabs)/profile');
+    router.dismiss();
   };
 
   const handleSubmit = async () => {
@@ -66,9 +67,10 @@ export default function EditProfileModal() {
       if (accessToken) {
         const updatedUserProfile = await editUserProfile(accessToken, formData)
         console.log('UPD', updatedUserProfile)
-        router.navigate('/(tabs)/profile');
+        router.dismiss();
+
       }
-      
+
     } catch (err: any) {
       console.error('Update error:', err);
     }
@@ -151,6 +153,11 @@ export default function EditProfileModal() {
           <Ionicons name="close" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
+
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
 
       <ScrollView 
         style={styles.scrollView}
@@ -249,11 +256,10 @@ export default function EditProfileModal() {
             setFunc={(value) => handleInputChange('bio', value)}
             setIsFocusedFunc={setIsBioFocused}
             keyboardType="default"
-            autoCapitalize='words'
             multiline={true}
           />
 
-          {/* О себе */}
+          {/* Я хочу */}
           <Text style={styles.label}>Я хочу</Text>
           <BasicTextField
             placeholder=""
@@ -262,7 +268,6 @@ export default function EditProfileModal() {
             setFunc={(value) => handleInputChange('desires', value)}
             setIsFocusedFunc={setIsDesiresFocused}
             keyboardType="default"
-            autoCapitalize='words'
             multiline={true}
           />
 
@@ -273,6 +278,7 @@ export default function EditProfileModal() {
           />
         </View>
         </ScrollView>
+        </KeyboardAvoidingView>
 
     </View>
     

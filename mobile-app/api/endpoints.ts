@@ -10,3 +10,5 @@ export const LOGIN = BASE_API_URL + 'login/'
 // USERS
 export const MY_PROFILE = BASE_API_URL + 'users/me/'
 export const EDIT_PROFILE = BASE_API_URL + 'users/edit/'
+export const RESET_PASSWROD = BASE_API_URL + 'users/reset_password/'
+export const UPLOAD_PHOTOS = BASE_API_URL + 'users/photos/upload/'

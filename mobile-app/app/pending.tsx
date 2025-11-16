@@ -162,7 +162,7 @@ export default function VerificationPendingScreen() {
               
               <View style={styles.noteItems}>
                 <View style={styles.noteItem}>
-                  <Text style={styles.noteItemIcon}>✅</Text>
+                  <Text style={styles.noteItemIcon}>👤</Text>
                   <Text style={styles.noteItemText}>
                     <Text style={{fontWeight: 'bold'}}>Только реальные люди.</Text> Все пользователи проходят обязательную верификацию.
                   </Text>

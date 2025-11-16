@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
+import DropDownPicker from 'react-native-dropdown-picker';
 import * as I from '../types/api';
 
 
@@ -26,8 +26,10 @@ export default function RegistrationScreen() {
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isCityFocused, setIsCityFocused] = useState(false);
   const [isHeightFocused, setIsHeightFocused] = useState(false);
+  const [isBodyTypeFocused, setisBodyTypeFocused] = useState(false);
+
   const [dataCities, setDataCities] = useState<I.City[]>([]);
-  const [selectedBodyType, setSelectedBodyType] = useState('average');
+  const [filteredCities, setFilteredCities] = useState<I.City[]>([]);
 
   const today = new Date();
   const minAgeDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
@@ -41,7 +43,7 @@ export default function RegistrationScreen() {
     birthDate: new Date(2000, 0, 1),
     height: '',
     gender: '',
-    cityId: '',
+    cityId: null,
     bodyType: 'average',
   });
 
@@ -136,6 +138,7 @@ export default function RegistrationScreen() {
       try {
         const cityItems = await getAllCities();
         setDataCities(cityItems);
+        setFilteredCities(cityItems);
       } catch (error) {
         console.error('Error fetching cities:', error);
       }
@@ -144,6 +147,16 @@ export default function RegistrationScreen() {
     fetchCities();
   }, []);
 
+  const handleCitySearch = (text: string) => {
+    if (text) {
+      const filtered = dataCities.filter(city => 
+        city.label.toLowerCase().startsWith(text.toLowerCase())
+      );
+      setFilteredCities(filtered);
+    } else {
+      setFilteredCities(dataCities);
+    }
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -185,33 +198,28 @@ export default function RegistrationScreen() {
           {errors.name && (<Text style={styles.errorText}>{errors.name}</Text>)}
 
           {/* Город */}
-          <View style={styles.fieldContainer}>
+          <View style={[styles.fieldContainer, { zIndex: 3000 }]}>
             <Text style={styles.label}>Город</Text>
-            <Dropdown
-              style={[styles.selectBox, isCityFocused && styles.inputFocused]}
-              placeholderStyle={styles.placeholderText}
-              selectedTextStyle={styles.selectInputText}
-              containerStyle={styles.selectDropdown}
-              itemTextStyle={styles.selectDropdownText}
-              activeColor='rgba(255, 255, 255, 0.1)'
-              inputSearchStyle={styles.selectDropdownText}
-              searchPlaceholderTextColor="#888"
-              data={dataCities}
-              labelField="label"
-              valueField="value"
-              placeholder="Введите ваш город"
-              onChange={item => {
-                handleInputChange('cityId', item.value);
-              }}
-              search={true}
-              searchQuery={(keyword, label) => {
-                return label.toLowerCase().startsWith(keyword.toLowerCase());
-              }}
-              searchPlaceholder="Поиск..."
-              onFocus={() => setIsCityFocused(true)}
-              onBlur={() => setIsCityFocused(false)}
+            <DropDownPicker
+              open={isCityFocused}
+              setOpen={setIsCityFocused}
               value={formData.cityId}
-              mode='auto'
+              setValue={(callback) => {
+                const newValue = callback(formData.cityId);
+                handleInputChange('cityId', newValue);
+                setFilteredCities(dataCities);
+              }}
+              items={filteredCities}
+              searchable={true}
+              searchPlaceholder="Поиск..."
+              onChangeSearchText={handleCitySearch}
+              placeholder="Введите ваш город"
+              style={[styles.selectBox, isCityFocused && styles.inputFocused]}
+              dropDownContainerStyle={styles.selectDropdown}
+              textStyle={styles.selectInputText}
+              placeholderStyle={styles.placeholderText}
+              searchTextInputStyle={styles.selectDropdownText}
+              listItemLabelStyle={styles.selectDropdownText}
             />
           </View>
           {errors.cityId && (<Text style={styles.errorText}>{errors.cityId}</Text>)}
@@ -260,7 +268,6 @@ export default function RegistrationScreen() {
                   <DatePicker
                     value={formData.birthDate}
                     mode="date"
-                    // onChange={handleDateChange}
                     onChange={handleDateChange}
                     maximumDate={minAgeDate}
                     locale="ru_RU"
@@ -272,7 +279,7 @@ export default function RegistrationScreen() {
           {errors.birthDate && (<Text style={styles.errorText}>{errors.birthDate}</Text>)}
 
           {/* Рост и телосложение в одну строку */}
-          <View style={styles.rowContainer}>
+          <View style={[styles.rowContainer, { zIndex: 2000 }]}>
 
             <View style={{ width: '32%' }}>
               <Text style={styles.label}>Рост (см)</Text>
@@ -294,25 +301,21 @@ export default function RegistrationScreen() {
 
             <View style={{ width: '66%' }}>
               <Text style={styles.label}>Телосложение</Text>
-
-              <Dropdown
-                style={styles.selectBox}
-                placeholderStyle={styles.selectInputText}
-                selectedTextStyle={styles.selectInputText}
-                containerStyle={styles.selectDropdown}
-                itemTextStyle={styles.selectDropdownText}
-                activeColor='rgba(255, 255, 255, 0.1)'
-                data={bodyTypeOptions}
-                maxHeight={200}
-                labelField="label"
-                valueField="value"
-                placeholder="Выберите телосложение"
-                value={selectedBodyType}
-                onChange={item => {
-                  setSelectedBodyType(item.value);
-                  handleInputChange('bodyType', item.value); // сразу отправляем 'average', 'slim' и т.д.
+              <DropDownPicker
+                open={isBodyTypeFocused}
+                setOpen={setisBodyTypeFocused}
+                value={formData.bodyType}
+                setValue={(callback) => {
+                  const newValue = callback(formData.bodyType);
+                  handleInputChange('bodyType', newValue);
                 }}
-                mode='auto'
+                items={bodyTypeOptions}
+                style={[styles.selectBox, isCityFocused && styles.inputFocused]}
+                dropDownContainerStyle={styles.selectDropdown}
+                textStyle={styles.selectInputText}
+                placeholderStyle={styles.placeholderText}
+                searchTextInputStyle={styles.selectDropdownText}
+                listItemLabelStyle={styles.selectDropdownText}
               />
             </View>
             {errors.bodyType && (<Text style={styles.errorText}>{errors.bodyType}</Text>)}
